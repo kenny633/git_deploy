@@ -1,101 +1,109 @@
-import Image from "next/image";
+"use client";
+import Head from "next/head";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [postData, setPostData] = useState([]);
+  const [visiblePosts, setVisiblePosts] = useState(12);
+  const [loading, setLoading] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    async function fetchData() {
+      const response = await fetch("http://localhost:3001/posts/");
+      const data = await response.json();
+      setPostData(data);
+    }
+
+    fetchData();
+  }, []);
+
+  const handleScroll = () => {
+    const scrollTop = window.scrollY;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+
+    if (scrollTop + windowHeight >= documentHeight - 100 && !loading) {
+      loadMorePosts();
+    }
+  };
+
+  const loadMorePosts = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setVisiblePosts((prev) => prev + 12);
+      setLoading(false);
+    }, 500);
+  };
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [loading]);
+
+  return (
+    <div className="flex flex-col items-center p-5 max-w-[1400px] mx-auto">
+      <Head>
+        <title>旅遊論壇</title>
+        <meta name="description" content="旅遊論壇主頁" />
+      </Head>
+
+      <nav className="flex justify-center my-5">
+        <Link href="/explore">
+          <button className="mx-2 px-4 py-2 bg-gray-300 rounded">探索</button>
+        </Link>
+        <Link href="/popular">
+          <button className="mx-2 px-4 py-2 bg-gray-300 rounded">熱門討論</button>
+        </Link>
+        <Link href="/region">
+          <button className="mx-2 px-4 py-2 bg-gray-300 rounded">地區/國家</button>
+        </Link>
+      </nav>
+
+      <main className="w-full">
+        <h2 className="my-5 text-xl font-semibold">最新帖子</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 w-full">
+          {[...postData]
+            .sort((a, b) => new Date(b.Creation_time) - new Date(a.Creation_time))
+            .slice(0, visiblePosts)
+            .map((post) => (
+              <Link key={post._id} href={`/postsample/${post._id}`}>
+                <div className="bg-gray-100 p-4 border border-gray-300 rounded shadow-lg hover:shadow-2xl animation-slideInUp">
+                  {post.img_path && (
+                    <div className="w-full h-[300px] overflow-hidden mb-2 rounded-lg">
+                      <img
+                        src={post.img_path}
+                        alt={post.title}
+                        className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                      />
+                    </div>
+                  )}
+                  <h3 className="text-lg font-medium overflow-hidden overflow-ellipsis whitespace-nowrap">
+                    {post.title.length > 20 ? `${post.title.substring(0, 20)}...` : post.title}
+                  </h3>
+                  <p className="text-gray-600 text-sm">
+                    {new Date(post.Creation_time).toLocaleString(undefined, {
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    })}
+                  </p>
+                </div>
+              </Link>
+            ))}
         </div>
+
+        {loading && (
+          <div className="flex justify-center my-5">
+            <p className="text-lg text-gray-600">加载中...</p>
+          </div>
+        )}
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
